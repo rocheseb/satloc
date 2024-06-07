@@ -51,6 +51,11 @@ setup(
         "dask",
         "skyfield",
     ],
+    entry_points={
+        "console_scripts": [
+            "satloc=satloc.satloc:main",
+        ],
+    },
     packages=find_packages(),
     include_package_data=True,
     license="MIT",

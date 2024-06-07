@@ -22,12 +22,17 @@ def satellite_coordinates(
     return latitude, longitude
 
 
-def satellite_track(norad_catalog_number: int | str, when: datetime = datetime.now(UTC)):
+def satellite_track(
+    norad_catalog_number: int | str, when: datetime = datetime.now(UTC), forecast_hours: float = 1.5
+):
     celestrak_url = f"https://celestrak.org/NORAD/elements/gp.php?CATNR={norad_catalog_number}"
     satellite = load.tle_file(celestrak_url, reload=True)[0]
     timescale = load.timescale()
 
-    times = [when + timedelta(seconds=30 * i) for i in range(180)]
+    # number of 30 sec intervals = hours_forcast * 3600 / 30
+    n_interval = int(forecast_hours * 120)
+
+    times = [when + timedelta(seconds=30 * i) for i in range(n_interval)]
 
     latitudes, longitudes = zip(
         *[satellite_coordinates(satellite, timescale, when=i) for i in times]
@@ -136,11 +141,13 @@ def make_map(times, latitudes, longitudes, title: str = ""):
         * initial_position.opts(color="red", size=8)
     )
 
+    forecast_hours = (times[-1] - times[0]).total_seconds() / 3600
+
     div_text = f"""
     Hover over markers to see coordinates.<br>
     <br>
     The track starts at the red marker at {data["UTC Time"][0]} (UTC). <br>
-    Green markers predict the satellite position in 30 second intervals for 1.5 hours<br>
+    Green markers predict the satellite position in 30 second intervals for {forecast_hours:.1f} hours<br>
     Orange markers are in 10 min intervals.
     """
 
@@ -154,10 +161,13 @@ def make_map(times, latitudes, longitudes, title: str = ""):
 def plot_satellite_tracks(
     norad_catalog_number: int | str,
     out_path: str = "satellite_track.",
-    when=datetime.now(UTC),
+    when: datetime = datetime.now(UTC),
+    forecast_hours: float = 1.5,
     title: str = "",
 ) -> None:
-    times, latitudes, longitudes = satellite_track(norad_catalog_number, when=when)
+    times, latitudes, longitudes = satellite_track(
+        norad_catalog_number, when=when, forecast_hours=forecast_hours
+    )
 
     map_plot = make_map(times, latitudes, longitudes, title=title)
 
@@ -177,6 +187,13 @@ def main():
         "-o", "--out-path", default="satellite_track.html", help="full path to the output html plot"
     )
     parser.add_argument("-t", "--title", default="", help="plot title")
+    parser.add_argument(
+        "-f",
+        "--forecast-hours",
+        type=float,
+        default=1.5,
+        help="How far after --date the track will be calculated (in hours)",
+    )
     args = parser.parse_args()
 
     if args.date is None:
@@ -184,7 +201,9 @@ def main():
     else:
         args.date = datetime.strptime(args.date, "%Y%M%DT%H%M%S")
 
-    plot_satellite_tracks(args.norad_catalog_number, args.out_path, args.date, args.title)
+    plot_satellite_tracks(
+        args.norad_catalog_number, args.out_path, args.date, args.forecast_hours, args.title
+    )
 
 
 if __name__ == "__main__":

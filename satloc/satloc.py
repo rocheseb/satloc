@@ -63,20 +63,24 @@ def split_orbit_track(longitudes, latitudes):
 
 def make_map(times, latitudes, longitudes, title: str = ""):
 
-    d = {"Longitude": longitudes, "Latitude": latitudes}
+    data = {
+        "Longitude": longitudes,
+        "Latitude": latitudes,
+        "Time": [datetime.strftime(i, "%Y-%m-%d %H:%M:%S") for i in times],
+    }
 
     vdims = ["Longitude", "Latitude"]
 
     initial_position = gv.Points([(longitudes[0], latitudes[0])], vdims=vdims)
 
-    markers_30sec = gv.Points(d, vdims=vdims)
+    markers_30sec = gv.Points(data, vdims=vdims)
+
+    data_10min = {k: [val for i, val in enumerate(v) if i % 20 == 0] for k, v in data.items()}
 
     markers_10min = gv.Points(
-        {
-            "Longitude": [v for i, v in enumerate(longitudes) if i % 20 == 0],
-            "Latitude": [v for i, v in enumerate(latitudes) if i % 20 == 0],
-        },
-        vdims=vdims,
+        data_10min,
+        vdims,
+        ["Longitude", "Latitude", "Time"],
     )
 
     orbit_track_segments = split_orbit_track(longitudes, latitudes)
@@ -84,7 +88,10 @@ def make_map(times, latitudes, longitudes, title: str = ""):
     orbit_tracks = [gv.Path(i, vdims=vdims) for i in orbit_track_segments]
 
     map_plot = gv.tile_sources.EsriWorldStreetMap.opts(
-        width=1000, height=800, active_tools=["pan", "wheel_zoom"], title=title
+        width=800,
+        height=700,
+        active_tools=["pan", "wheel_zoom"],
+        title=title,
     )
 
     for i in orbit_tracks:
@@ -92,15 +99,14 @@ def make_map(times, latitudes, longitudes, title: str = ""):
 
     map_plot *= (
         markers_30sec.opts(color="green", size=4)
-        * markers_10min.opts(color="orange", size=5)
+        * markers_10min.opts(color="orange", size=5, tools=["hover"])
         * initial_position.opts(color="red", size=8)
     )
 
     div_text = f"""
-    Red marker coordinates at {datetime.strftime(times[0],'%Y-%m-%d %H:%M:%S')}<br>
-    Latitude: {latitudes[0]:.4f} °N<br>
-    Longitude: {longitudes[0]:.4f} °E<br>
+    Hover the big markers to see coordinates and UTC time.<br>
     <br>
+    The track starts at the red marker. <br>
     Green markers predict the satellite position in 30 second intervals for 1.5 hours<br>
     Orange markers are in 10 min intervals.
     """

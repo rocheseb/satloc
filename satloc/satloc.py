@@ -3,6 +3,8 @@ from skyfield.api import load, wgs84
 from skyfield.sgp4lib import EarthSatellite
 from skyfield.timelib import Timescale
 from datetime import datetime, UTC, timedelta
+import pytz
+from timezonefinder import TimezoneFinder
 import geoviews as gv
 import holoviews as hv
 
@@ -63,25 +65,56 @@ def split_orbit_track(longitudes, latitudes):
 
 def make_map(times, latitudes, longitudes, title: str = ""):
 
+    tf = TimezoneFinder()
+
+    local_timezones = [
+        tf.timezone_at(lng=longitudes[i], lat=latitudes[i]) for i, v in enumerate(times)
+    ]
+
     data = {
         "Longitude": longitudes,
         "Latitude": latitudes,
-        "Time": [datetime.strftime(i, "%Y-%m-%d %H:%M:%S") for i in times],
+        "UTC Time": [datetime.strftime(i, "%Y-%m-%d %H:%M:%S") for i in times],
+        "Local Time": [
+            datetime.strftime(
+                v.astimezone(pytz.timezone(local_timezones[i])),
+                "%Y-%m-%d %H:%M:%S",
+            )
+            + f" ({local_timezones[i]})"
+            for i, v in enumerate(times)
+        ],
     }
+
+    for tz_str in ["America/New_York", "Pacific/Auckland", "Europe/Paris"]:
+        data[tz_str] = [
+            datetime.strftime(
+                v.astimezone(pytz.timezone(tz_str)),
+                "%Y-%m-%d %H:%M:%S",
+            )
+            for i, v in enumerate(times)
+        ]
 
     vdims = ["Longitude", "Latitude"]
 
     initial_position = gv.Points([(longitudes[0], latitudes[0])], vdims=vdims)
 
-    markers_30sec = gv.Points(data, vdims=vdims)
+    markers_30sec = gv.Points(
+        data,
+        vdims,
+        [
+            "Longitude",
+            "Latitude",
+            "UTC Time",
+            "Local Time",
+            "America/New_York",
+            "Pacific/Auckland",
+            "Europe/Paris",
+        ],
+    )
 
     data_10min = {k: [val for i, val in enumerate(v) if i % 20 == 0] for k, v in data.items()}
 
-    markers_10min = gv.Points(
-        data_10min,
-        vdims,
-        ["Longitude", "Latitude", "Time"],
-    )
+    markers_10min = gv.Points(data_10min, vdims)
 
     orbit_track_segments = split_orbit_track(longitudes, latitudes)
 
@@ -98,15 +131,15 @@ def make_map(times, latitudes, longitudes, title: str = ""):
         map_plot *= i.opts(color="blue", line_width=2)
 
     map_plot *= (
-        markers_30sec.opts(color="green", size=4)
-        * markers_10min.opts(color="orange", size=5, tools=["hover"])
+        markers_30sec.opts(color="green", size=4, tools=["hover"])
+        * markers_10min.opts(color="orange", size=5)
         * initial_position.opts(color="red", size=8)
     )
 
     div_text = f"""
-    Hover the big markers to see coordinates and UTC time.<br>
+    Hover over markers to see coordinates.<br>
     <br>
-    The track starts at the red marker. <br>
+    The track starts at the red marker at {data["UTC Time"][0]} (UTC). <br>
     Green markers predict the satellite position in 30 second intervals for 1.5 hours<br>
     Orange markers are in 10 min intervals.
     """

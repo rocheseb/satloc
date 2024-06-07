@@ -50,6 +50,9 @@ setup(
         "geoviews",
         "dask",
         "skyfield",
+        "dask",
+        "pytz",
+        "timezonefinder",
     ],
     entry_points={
         "console_scripts": [

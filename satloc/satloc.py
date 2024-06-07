@@ -199,7 +199,7 @@ def main():
     if args.date is None:
         args.date = datetime.now(UTC)
     else:
-        args.date = datetime.strptime(args.date, "%Y%M%DT%H%M%S")
+        args.date = datetime.strptime(args.date, "%Y%m%dT%H%M%S").replace(tzinfo=UTC)
 
     plot_satellite_tracks(
         args.norad_catalog_number, args.out_path, args.date, args.forecast_hours, args.title

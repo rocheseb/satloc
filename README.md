@@ -1,6 +1,6 @@
 # README
 
-This code can be used to generate a geoviews plot of a satellite given its NORAD Catalog Number if it exists on 
+This code can be used to generate a geoviews plot of a satellite given its NORAD Catalog Number if it exists on celestrak.org 
 
 The track starts at a given time and extends 1.5 hours from there.
 ![image](https://github.com/rocheseb/satloc/assets/22297924/1deb0968-9e4b-46dd-a5f2-677a711c2b5c)

@@ -2,7 +2,7 @@
 
 This code can be used to generate a geoviews plot of a satellite given its NORAD Catalog Number if it exists on celestrak.org 
 
-The track starts at a given time and extends 1.5 hours from there.
+The track starts at a given time (**--date**, defaults to current time) and extends for **--forecast-hours** hours (defaults to 1.5 hours).
 
 Example plot for the ISS generated with `satloc 25544 --title ISS --forecast-hours 3`:
 ![image](https://github.com/rocheseb/satloc/assets/22297924/72df3935-078e-4027-9adf-e3fd7b74a12c)
